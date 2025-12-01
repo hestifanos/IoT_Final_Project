@@ -7,7 +7,7 @@ import streamlit as st
 import pydeck as pdk
 import streamlit.components.v1 as components
 
-# --------- PATHS & CONSTANTS ---------
+
 
 # Path to traffic.db in the project root
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -15,7 +15,7 @@ DB_PATH = BASE_DIR / "traffic.db"
 
 INTERSECTION_ID = "intersection1"
 
-# Approximate coordinates for Conlin Rd & Simcoe St N (North Oshawa / Ontario Tech)
+# Approximate coordinates for Conlin Rd & Simcoe St N 
 INTERSECTION_LAT = 43.9456
 INTERSECTION_LON = -78.8965
 
@@ -27,8 +27,7 @@ GOOGLE_MAPS_EMBED_URL = (
 )
 
 
-# --------- DB HELPERS ---------
-
+#  DB helpers
 @st.cache_resource
 def get_db_connection():
     # cache the connection across reruns
@@ -48,23 +47,21 @@ def load_samples(limit: int = 200):
     """
     df = pd.read_sql_query(query, conn, params=(INTERSECTION_ID, limit))
     if not df.empty:
-        df = df.iloc[::-1]  # chronological order
+        df = df.iloc[::-1] 
     return df
 
-
-# --------- COLOR HELPERS ---------
-
+# Color helpers
 def congestion_color_rgb(level: str):
     """[R,G,B] for PyDeck marker."""
     level = str(level).lower()
     if level == "green":
-        return [0, 200, 83]      # green
+        return [0, 200, 83]      
     elif level == "yellow":
-        return [255, 214, 0]     # yellow
+        return [255, 214, 0]     
     elif level == "orange":
-        return [255, 145, 0]     # orange
+        return [255, 145, 0]     
     else:
-        return [213, 0, 0]       # red
+        return [213, 0, 0]      
 
 
 def congestion_color_hex(level: str):
@@ -80,15 +77,14 @@ def congestion_color_hex(level: str):
         return "#d50000"
 
 
-# --------- MAIN APP ---------
-
+# Streamlit app
 def main():
     st.set_page_config(
         page_title="Smart Traffic Mini – Intersection Dashboard",
         layout="wide",
     )
 
-    # Small CSS tweak to hide the fullscreen button on charts/maps
+    # Small CSS tweak to hide the fullscreen button on charts
     st.markdown(
         """
         <style>
@@ -142,8 +138,8 @@ def main():
     level = latest["congestion_level"]
     bg_hex = congestion_color_hex(level)
 
-    # ---------- INTERSECTION STATUS PANEL (color background) ----------
-
+    
+# status banner
     st.markdown(
         f"""
         <div style="
@@ -164,8 +160,8 @@ def main():
         unsafe_allow_html=True,
     )
 
-    # ---------- CHARTS + LIVE MAP LAYOUT ----------
-
+  
+ #  charts and map side by side
     chart_col, map_col = st.columns([3, 2])
 
     with chart_col:
@@ -184,10 +180,10 @@ def main():
     with map_col:
         st.subheader("Live Simulation – Conlin Rd & Simcoe St N")
         st.markdown(
-            "📍 **Conlin Rd & Simcoe St N – Oshawa (Ontario Tech North Campus area)**",
+            "**Conlin Rd & Simcoe St N – Oshawa (Ontario Tech North Campus area)**",
         )
 
-        # Single marker representing the intersection, color-coded
+        # Single marker representing the intersection
         map_df = pd.DataFrame(
             {
                 "lat": [INTERSECTION_LAT],
@@ -198,7 +194,7 @@ def main():
             }
         )
 
-        # Radius grows with congestion_score (0–1) → 80–300
+        # Radius grows with congestion_score (0.0 to 1.0)
         max_radius = 300
         min_radius = 80
         congestion_score = float(latest["congestion_score"])
@@ -220,7 +216,7 @@ def main():
                     data=map_df,
                     get_position="[lon, lat]",
                     get_radius=radius,
-                    get_fill_color=marker_rgb,   # [R, G, B]
+                    get_fill_color=marker_rgb,   
                     pickable=True,
                 )
             ],
@@ -233,8 +229,8 @@ def main():
 
         st.pydeck_chart(deck, use_container_width=True, height=320)
 
-    # ---------- EMBEDDED GOOGLE MAP (REAL VIEW) ----------
 
+ # real intersection google maps
     st.subheader("Real Intersection View – Google Maps")
     st.write(
         "This embedded map shows the actual Conlin Rd & Simcoe St N intersection "
@@ -255,7 +251,7 @@ def main():
         height=430,
     )
 
-    # Auto-refresh: sleep then rerun
+    # Auto refresh
     time.sleep(refresh_sec)
     st.rerun()
 

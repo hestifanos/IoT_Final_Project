@@ -127,15 +127,15 @@ An embedded Google Maps view of the Conlin & Simcoe intersection
 
 Project Structure
 smart_traffic_mini/
-├── simulator/
-│   └── data_simulator.py
-├── processor/
-│   └── processor.py
-├── dashboard/
-│   └── dashboard.py
-├── traffic.db
-├── requirements.txt
-└── README.md
+  - simulator/
+    - data_simulator.py
+  - processor/
+    - processor.py
+  - dashboard/
+    - dashboard.py
+  - traffic.db
+  - requirements.txt
+  -  README.md
 
 Conclusion
 

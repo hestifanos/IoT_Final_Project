@@ -9,8 +9,8 @@ BROKER_HOST = "localhost"
 BROKER_PORT = 1883
 TOPIC       = "smart_traffic/intersection1"
 
-FREE_FLOW_SPEED = 50.0   # km/h (adjustable)
-BASE_COUNT      = 10     # average vehicles per second (adjustable)
+FREE_FLOW_SPEED = 50.0   
+BASE_COUNT      = 10    
 
 
 def generate_sample():
@@ -18,12 +18,11 @@ def generate_sample():
     now = datetime.now(timezone.utc).isoformat()
 
     # Randomly simulate congestion bursts
-    # 80% of the time: near free-flow; 20%: congested
     if random.random() < 0.2:
         avg_speed = random.uniform(5, 20)  # congested
         vehicle_count = random.randint(15, 30)
     else:
-        avg_speed = random.uniform(35, 60)  # normal / free flow
+        avg_speed = random.uniform(35, 60)  # normal flow
         vehicle_count = random.randint(5, 20)
 
     return {
@@ -51,7 +50,7 @@ def main():
             else:
                 print("Failed to send message:", status)
 
-            time.sleep(1)  # 1 second interval (adjustable)
+            time.sleep(1)  
     except KeyboardInterrupt:
         print("Stopping simulator...")
     finally:

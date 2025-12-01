@@ -1,7 +1,7 @@
 from pathlib import Path
 import sqlite3
 
-# Project root directory (where this file lives)
+# Project root directory 
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "traffic.db"
 

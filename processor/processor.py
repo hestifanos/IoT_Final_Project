@@ -5,9 +5,9 @@ from typing import Tuple, Optional
 from pathlib import Path
 import paho.mqtt.client as mqtt
 
-# ---------- CONFIG ----------
 
-# Project root = parent of the 'processor' folder
+
+# Project root = parent of the processor folder
 BASE_DIR = Path(__file__).resolve().parent.parent
 DB_PATH = BASE_DIR / "traffic.db"
 
@@ -17,13 +17,13 @@ BROKER_HOST = "localhost"
 BROKER_PORT = 1883
 TOPIC       = "smart_traffic/intersection1"
 
-FREE_FLOW_SPEED = 50.0          # km/h (adjustable)
-ANOMALY_WINDOW  = 20            # number of previous samples
-ANOMALY_DROP_FACTOR = 0.6       # 40% or more drop vs recent average
+FREE_FLOW_SPEED = 50.0   # km/h 
+ANOMALY_WINDOW  = 20    # number of previous samples
+ANOMALY_DROP_FACTOR = 0.6   # 40% or more drop vs recent average
 
 
-# ---------- DB HELPERS ----------
 
+# DB helpers
 def ensure_tables_exist():
     """Create tables if they don't exist yet."""
     conn = sqlite3.connect(DB_PATH)
@@ -121,8 +121,8 @@ def get_recent_avg_speed(intersection_id: str, limit: int) -> Optional[float]:
     return sum(speeds) / len(speeds)
 
 
-# ---------- LOGIC ----------
 
+# processing helpers
 def compute_congestion(avg_speed: float) -> Tuple[float, str]:
     """Return (score, level). Score in [0,1], level = Green/Yellow/Orange/Red."""
     if avg_speed < 0:
@@ -153,8 +153,8 @@ def is_anomaly_speed_drop(intersection_id: str, current_speed: float) -> bool:
     return current_speed < (ANOMALY_DROP_FACTOR * recent_avg)
 
 
-# ---------- MQTT CALLBACKS ----------
 
+# MQTT callbacks
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
         print("Connected to MQTT broker")
@@ -205,10 +205,10 @@ def on_message(client, userdata, msg):
         print("Error processing message:", e)
 
 
-# ---------- MAIN ----------
 
+# Main entrypoint
 def main():
-    # Make sure DB + tables exist before subscribing
+   
     ensure_tables_exist()
 
     client = mqtt.Client()
