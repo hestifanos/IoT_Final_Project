@@ -1,9 +1,9 @@
 import json
+import math
 import sqlite3
 from typing import Tuple, Optional
 
 from pathlib import Path
-import paho.mqtt.client as mqtt
 
 
 
@@ -125,6 +125,8 @@ def get_recent_avg_speed(intersection_id: str, limit: int) -> Optional[float]:
 # processing helpers
 def compute_congestion(avg_speed: float) -> Tuple[float, str]:
     """Return (score, level). Score in [0,1], level = Green/Yellow/Orange/Red."""
+    if not math.isfinite(avg_speed):
+        raise ValueError("avg_speed must be finite")
     if avg_speed < 0:
         avg_speed = 0.0
 
@@ -153,6 +155,42 @@ def is_anomaly_speed_drop(intersection_id: str, current_speed: float) -> bool:
     return current_speed < (ANOMALY_DROP_FACTOR * recent_avg)
 
 
+def parse_sample(payload: bytes) -> Tuple[str, str, float, int]:
+    """Decode and validate the fields required to store a traffic sample."""
+    try:
+        data = json.loads(payload.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError("Payload must be valid UTF-8 JSON") from exc
+    if not isinstance(data, dict):
+        raise ValueError("Payload must be a JSON object")
+
+    intersection_id = data.get("intersection_id", "intersection1")
+    ts_utc = data.get("timestamp_utc")
+    if not isinstance(intersection_id, str) or not intersection_id.strip():
+        raise ValueError("intersection_id must be a non-empty string")
+    if not isinstance(ts_utc, str) or not ts_utc.strip():
+        raise ValueError("timestamp_utc must be a non-empty string")
+
+    try:
+        raw_speed = data["avg_speed_kmh"]
+        raw_vehicle_count = data["vehicle_count"]
+        if isinstance(raw_speed, bool) or isinstance(raw_vehicle_count, bool):
+            raise TypeError("boolean sensor values are invalid")
+        avg_speed = float(raw_speed)
+        vehicle_count = int(raw_vehicle_count)
+    except (KeyError, OverflowError, TypeError, ValueError) as exc:
+        raise ValueError("Payload must include numeric speed and vehicle count") from exc
+    if not math.isfinite(avg_speed) or avg_speed < 0:
+        raise ValueError("avg_speed_kmh must be finite and non-negative")
+    if isinstance(raw_vehicle_count, float) and not raw_vehicle_count.is_integer():
+        raise ValueError("vehicle_count must be an integer")
+    if isinstance(raw_vehicle_count, str) and str(vehicle_count) != raw_vehicle_count.strip():
+        raise ValueError("vehicle_count must be an integer")
+    if vehicle_count < 0:
+        raise ValueError("vehicle_count must be non-negative")
+    return ts_utc, intersection_id, avg_speed, vehicle_count
+
+
 
 # MQTT callbacks
 def on_connect(client, userdata, flags, rc):
@@ -166,12 +204,7 @@ def on_connect(client, userdata, flags, rc):
 
 def on_message(client, userdata, msg):
     try:
-        payload = msg.payload.decode("utf-8")
-        data = json.loads(payload)
-        intersection_id = data.get("intersection_id", "intersection1")
-        ts_utc = data.get("timestamp_utc")
-        avg_speed = float(data.get("avg_speed_kmh", 0.0))
-        vehicle_count = int(data.get("vehicle_count", 0))
+        ts_utc, intersection_id, avg_speed, vehicle_count = parse_sample(msg.payload)
 
         congestion_score, congestion_level = compute_congestion(avg_speed)
         anomaly = is_anomaly_speed_drop(intersection_id, avg_speed)
@@ -208,7 +241,8 @@ def on_message(client, userdata, msg):
 
 # Main entrypoint
 def main():
-   
+    import paho.mqtt.client as mqtt
+
     ensure_tables_exist()
 
     client = mqtt.Client()
